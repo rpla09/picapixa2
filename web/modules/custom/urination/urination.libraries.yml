@@ -1,0 +1,8 @@
+# smartdate_toggle:
+#   version: 1.x
+#   js:
+#     js/urination.smartdate.js: {}
+#   dependencies:
+#     - core/jquery
+#     - core/drupal
+#     - core/drupalSettings

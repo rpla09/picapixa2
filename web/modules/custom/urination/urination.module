@@ -1,0 +1,186 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function urination_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  if ($form_id == 'node_urination_form' || $form_id == "node_urination_edit_form" ) {
+    //add state visible to field_in_diferent_days
+    // $form['field_grouped']['#states'] = [
+    //   'visible' => [
+    //     [':input[name="field_type"]' => ['value' => 'multiple']],
+    //   ],
+    // ];
+
+    // $form['field_in_different_days']['#states'] = [
+    //   'visible' => [
+    //     [
+    //       ':input[name="field_type"]' => ['value' => 'multiple'],
+    //       ':input[name="field_grouped[value]"]' => ['checked' => TRUE],
+    //     ],
+    //   ],
+    // ];
+
+
+    //$form['#attached']['library'][] = 'urination/smartdate_toggle';
+    //$form['#attached']['library'] = ['smart_date/date_only'];
+    // Agregar validación personalizada
+    //$form['#validate'][] = 'urination_form_validate';
+  }
+}
+// function urination_page_attachments(array &$attachments) {
+//   $attachments['#attached']['library'][] = 'core/drupal.dialog.ajax';
+//   $attachments['#attached']['library'][] = 'media_library/ui';
+//   $attachments['#attached']['library'][] = 'media_library/theme';
+// }
+
+
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+// function urination_node_presave(NodeInterface $node) {
+//   if ($node->bundle() == 'urination') {
+//     if ($node->hasField('field_date') && !$node->get('field_date')->isEmpty()) {
+//       // Date field guarda en formato: YYYY-MM-DDTHH:MM:SS
+//       $date_value = $node->get('field_date')->value;
+
+//       // Extraer solo la fecha (primeros 10 caracteres: YYYY-MM-DD)
+//       $date_only = substr($date_value, 0, 10);
+
+//       if ($node->hasField('field_date_only')) {
+//         $node->set('field_date_only', $date_only);
+//       }
+//     }
+//   }
+// }
+// function urination_node_presave(NodeInterface $node) {
+//   if ($node->bundle() == 'urination') {
+//     if ($node->hasField('field_datetime') && !$node->get('field_datetime')->isEmpty()) {
+//       try {
+//         // Obtener el valor de fecha
+//         $date_value = $node->get('field_datetime')->value;
+
+//         // Extraer fecha y hora
+//         if (strpos($date_value, 'T') !== FALSE) {
+//           // Formato: 2025-10-07T10:50:00
+//           $parts = explode('T', $date_value);
+//           $date_only = $parts[0];
+//           $time_only = isset($parts[1]) ? substr($parts[1], 0, 5) : ''; // HH:MM
+//         } elseif (strpos($date_value, ' ') !== FALSE) {
+//           // Formato: 2025-10-07 10:50:00
+//           $parts = explode(' ', $date_value);
+//           $date_only = $parts[0];
+//           $time_only = isset($parts[1]) ? substr($parts[1], 0, 5) : ''; // HH:MM
+//         } else {
+//           // Solo fecha: 2025-10-07
+//           $date_only = $date_value;
+//           $time_only = '';
+//         }
+
+//         // Guardar fecha
+//         if ($node->hasField('field_date_only')) {
+//           $node->set('field_date_only', $date_only);
+//         }
+
+//         // Guardar hora
+//         if ($node->hasField('field_time_only')) {
+//           $node->set('field_time_only', $time_only);
+//         }
+//       } catch (\Exception $e) {
+//         \Drupal::logger('urination')->error('Error processing date: @message', ['@message' => $e->getMessage()]);
+//       }
+//     }
+//   }
+// }
+
+// function urination_node_presave(NodeInterface $node) {
+//   if ($node->bundle() == 'urination') {
+//     if ($node->hasField('field_datetime') && !$node->get('field_datetime')->isEmpty()) {
+//       try {
+//         // Obtener el valor de fecha
+//         $date_value = $node->get('field_datetime')->value;
+
+//         // Crear objeto DateTime
+//         $date = new \DateTime($date_value, new \DateTimeZone('UTC'));
+
+//         // Obtener timezone de forma segura
+//         try {
+//           $config = \Drupal::config('system.date');
+//           $site_timezone = $config->get('timezone');
+
+//           // Validar que sea string y no vacío
+//           if (!is_string($site_timezone) || empty($site_timezone)) {
+//             $site_timezone = date_default_timezone_get();
+//           }
+
+//           $date->setTimezone(new \DateTimeZone($site_timezone));
+//         } catch (\Exception $tz_error) {
+//           // Si falla, usar timezone por defecto de PHP
+//           $site_timezone = date_default_timezone_get();
+//           $date->setTimezone(new \DateTimeZone($site_timezone));
+//         }
+
+//         // Extraer fecha y hora
+//         $date_only = $date->format('Y-m-d');
+//         $time_only = $date->format('H:i');
+
+//         // Guardar fecha
+//         if ($node->hasField('field_date_only')) {
+//           $node->set('field_date_only', $date_only);
+//         }
+
+//         // Guardar hora
+//         if ($node->hasField('field_time_only')) {
+//           $node->set('field_time_only', $time_only);
+//         }
+
+//       } catch (\Exception $e) {
+//         \Drupal::logger('urination')->error('Error processing date: @message', ['@message' => $e->getMessage()]);
+//       }
+//     }
+//   }
+// }
+
+
+function urination_node_presave(NodeInterface $node) {
+  if ($node->bundle() == 'urination') {
+    if ($node->hasField('field_datetime') && !$node->get('field_datetime')->isEmpty()) {
+      try {
+        // Obtener el valor de fecha
+        $date_value = $node->get('field_datetime')->value;
+
+        // Crear objeto DateTime
+        $date = new \DateTime($date_value, new \DateTimeZone('UTC'));
+
+        // Obtener timezone
+        $site_timezone = date_default_timezone_get();
+        $date->setTimezone(new \DateTimeZone($site_timezone));
+
+        // Para date_only: crear timestamp de medianoche de ese día
+        $date_only_obj = new \DateTime($date->format('Y-m-d') . ' 00:00:00', new \DateTimeZone($site_timezone));
+
+        // Guardar hora como texto
+        $time_only = $date->format('H:i');
+
+        // Guardar fecha (como string para campo Date)
+        if ($node->hasField('field_date_only')) {
+          $node->set('field_date_only', $date_only_obj->format('Y-m-d'));
+        }
+
+        // Guardar hora
+        if ($node->hasField('field_time_only')) {
+          $node->set('field_time_only', $time_only);
+        }
+
+      } catch (\Exception $e) {
+        \Drupal::logger('urination')->error('Error processing date: @message', ['@message' => $e->getMessage()]);
+      }
+    }
+  }
+}

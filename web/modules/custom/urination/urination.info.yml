@@ -1,0 +1,5 @@
+name: 'Urination'
+type: module
+description: 'Urination management'
+package: whc
+core_version_requirement: ^10 || ^11
