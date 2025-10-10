@@ -10,6 +10,15 @@ use Drupal\node\NodeInterface;
 function urination_form_alter(&$form, FormStateInterface $form_state, $form_id) {
 
   if ($form_id == 'node_urination_form' || $form_id == "node_urination_edit_form" ) {
+
+    // Ejecutar después de que Field Group haya procesado el form.
+    $form['#after_build'][] = 'urination_after_build_expand_symptoms';
+
+
+
+
+
+
     //add state visible to field_in_diferent_days
     // $form['field_grouped']['#states'] = [
     //   'visible' => [
@@ -148,6 +157,30 @@ function urination_form_alter(&$form, FormStateInterface $form_state, $form_id) 
 // }
 
 
+function urination_after_build_expand_symptoms($form, FormStateInterface $form_state) {
+  $node = $form_state->getFormObject()->getEntity();
+
+  // --- Grupo Associated symptoms ---
+  if (isset($form['group_associated_symptoms'])) {
+    $values = $node->get('field_associated_symptoms')->getValue();
+    if (!empty($values)) {
+      $form['group_associated_symptoms']['#open'] = TRUE;
+    }
+  }
+
+  // --- Grupo Notes & Media ---
+  if (isset($form['group_notes_and_media'])) {
+    $has_notes = !empty($node->get('field_notes')->value);
+    $has_images = !empty($node->get('field_images')->getValue());
+    if ($has_notes || $has_images) {
+      $form['group_notes_and_media']['#open'] = TRUE;
+    }
+  }
+
+  return $form;
+}
+
+
 function urination_node_presave(NodeInterface $node) {
   if ($node->bundle() == 'urination') {
     if ($node->hasField('field_datetime') && !$node->get('field_datetime')->isEmpty()) {
@@ -184,3 +217,5 @@ function urination_node_presave(NodeInterface $node) {
     }
   }
 }
+
+

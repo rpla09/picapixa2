@@ -1,0 +1,5 @@
+name: 'Health Episode'
+type: module
+description: 'Adds dynamic form logic to the Health Episode content type using #states.'
+package: whc
+core_version_requirement: ^10 || ^11

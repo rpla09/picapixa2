@@ -41,6 +41,7 @@
         "drupal/core-recipe-unpack": "^11.2",
         "drupal/core-recommended": "^11.2",
         "drupal/dashboard": "^2",
+        "drupal/datetimehideseconds": "^1.5",
         "drupal/easy_breadcrumb": "^2.0.9",
         "drupal/easy_email": "^3.0.2",
         "drupal/easy_email_theme": "^1",
