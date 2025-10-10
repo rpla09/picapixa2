@@ -10,6 +10,8 @@ function health_episode_form_alter(&$form, FormStateInterface $form_state, $form
   // Solo aplicamos al formulario del tipo "health_episode".
   if ($form_id == 'node_health_episode_form' || $form_id == "node_health_episode_edit_form") {
 
+    $form['#validate'][] = 'health_episode_custom_validate';
+
     // 🔹 Definición de variables antes de usarlas.
     $episode_type = 'field_episode_type';
     $infection_status = 'field_infection_status';
@@ -161,7 +163,7 @@ function health_episode_form_alter(&$form, FormStateInterface $form_state, $form
      * BLOQUE “EPISODE END”
      * -------------------------- */
     if (isset($form['field_end_datetime'])) {
-      $form['field_end_datetime']['widget'][0]['#required'] = FALSE;
+      //$form['field_end_datetime']['widget'][0]['#required'] = FALSE;
       $form['field_end_datetime']['#states'] = [
         'invisible' => [
           [':input[name="field_single_event[value]"]' => ['checked' => TRUE]],
@@ -169,10 +171,6 @@ function health_episode_form_alter(&$form, FormStateInterface $form_state, $form
             ':input[name="field_episode_status"]' => ['!value' => 'resolved'],
             ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
           ],
-        ],
-        'required' => [
-          ':input[name="field_episode_status"]' => ['value' => 'resolved'],
-          ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
         ],
       ];
     }
@@ -198,5 +196,38 @@ function health_episode_form_alter(&$form, FormStateInterface $form_state, $form
         ],
       ];
     }
+  }
+}
+
+function health_episode_custom_validate($form, FormStateInterface $form_state) {
+  $status = $form_state->getValue('field_episode_status')[0]['value'] ?? NULL;
+
+  // Soporte para boolean field con o sin índice [0].
+  $single_event_value = $form_state->getValue('field_single_event');
+  if (is_array($single_event_value)) {
+    if (isset($single_event_value['value'])) {
+      $single_event = $single_event_value['value'];
+    }
+    elseif (isset($single_event_value[0]['value'])) {
+      $single_event = $single_event_value[0]['value'];
+    }
+    else {
+      $single_event = 0;
+    }
+  } else {
+    $single_event = $single_event_value;
+  }
+
+  // Convertimos a boolean.
+  $single_event = (bool) ((int) $single_event);
+
+  $end_date = $form_state->getValue('field_end_datetime')[0]['value'] ?? NULL;
+
+  // Validación médica.
+  if ($status === 'resolved' && !$single_event && empty($end_date)) {
+    $form_state->setErrorByName(
+      'field_end_datetime',
+      t('Please enter an end date when the episode is resolved and not a single event.')
+    );
   }
 }
