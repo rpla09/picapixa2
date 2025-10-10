@@ -1,60 +1,72 @@
 <?php
-/**
- * @file
- * Dynamic form behavior for Health Episode.
- */
 
 use Drupal\Core\Form\FormStateInterface;
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_alter().
  */
-function health_episode_form_node_health_episode_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+function health_episode_form_alter(&$form, FormStateInterface $form_state, $form_id) {
 
-  // Ensure field_episode_type exists before applying logic.
-  if (!isset($form['field_episode_type'])) {
-    return;
-  }
+  // Solo aplicamos al formulario del tipo "health_episode".
+  if ($form_id == 'node_health_episode_form' || $form_id == "node_health_episode_edit_form") {
 
-  // Machine names for clarity.
-  $episode_type = 'field_episode_type';
-  $infection_status = 'field_infection_status';
-  $antibiotic_fields = [
-    'field_antibiotic_name',
-    'field_antibiotic_dose',
-    'field_antibiotic_frequency',
-  ];
-  $fever_temp = 'field_fever_max_temp';
-  $followup_fields = [
-    'field_follow_up_phase',
-  //  'field_episode_notes',
-  ];
-  $wound_fields = [
-    'field_wound_location',
-    'field_wound_location_other',
-    'field_wound_stage',
-    'field_wound_size',
-  ];
-  $other_type_field = 'field_episode_type_other';
-
-  // Infection → show infection + antibiotic + fever.
-  if (isset($form[$infection_status])) {
-    $form[$infection_status]['#states'] = [
-      'visible' => [
-        ':input[name="' . $episode_type . '"]' => ['value' => 'infection'],
-      ],
+    // 🔹 Definición de variables antes de usarlas.
+    $episode_type = 'field_episode_type';
+    $infection_status = 'field_infection_status';
+    $antibiotic_fields = [
+      'field_antibiotic_name',
+      'field_antibiotic_dose',
+      'field_antibiotic_frequency',
     ];
-  }
-  //hide group_infection
-  $form['group_infection']['#states'] = [
-    'visible' => [
+    $fever_temp = 'field_fever_max_temp';
+    $followup_fields = ['field_follow_up_phase'];
+    $wound_fields = [
+      'field_wound_location',
+      'field_wound_location_other',
+      'field_wound_stage',
+      'field_wound_size',
+    ];
+    $other_type_field = 'field_episode_type_other';
+
+    // Si no existe el campo de tipo de episodio, no hacemos nada.
+    if (!isset($form[$episode_type])) {
+      return;
+    }
+
+    /* --------------------------
+     * BLOQUE DE INFECCIÓN
+     * -------------------------- */
+    if (isset($form[$infection_status])) {
+      $form[$infection_status]['#states'] = [
+        'visible' => [
           ':input[name="' . $episode_type . '"]' => ['value' => 'infection'],
         ],
-  ];
+      ];
+    }
 
-  foreach ($antibiotic_fields as $field) {
-    if (isset($form[$field])) {
-      $form[$field]['#states'] = [
+    //if (isset($form['group_infection'])) {
+      $form['group_infection']['#states'] = [
+        'visible' => [
+          ':input[name="' . $episode_type . '"]' => ['value' => 'infection'],
+        ],
+      ];
+    //}
+
+    foreach ($antibiotic_fields as $field) {
+      if (isset($form[$field])) {
+        $form[$field]['#states'] = [
+          'visible' => [
+            ':input[name="' . $episode_type . '"]' => [
+              ['value' => 'infection'],
+              ['value' => 'medication'],
+            ],
+          ],
+        ];
+      }
+    }
+
+    //if (isset($form['group_medication'])) {
+      $form['group_medication']['#states'] = [
         'visible' => [
           ':input[name="' . $episode_type . '"]' => [
             ['value' => 'infection'],
@@ -62,110 +74,129 @@ function health_episode_form_node_health_episode_form_alter(&$form, FormStateInt
           ],
         ],
       ];
-    }
-  }
+    //}
 
-  //hide group_medication
-  $form['group_medication']['#states'] = [
-    'visible' => [
-          ':input[name="' . $episode_type . '"]' => [
-            ['value' => 'infection'],
-            ['value' => 'medication'],
-          ],
-        ],
-  ];
-
-  // Fever → show fever temperature.
-  if (isset($form[$fever_temp])) {
-    $form[$fever_temp]['#states'] = [
-      'visible' => [
+    /* --------------------------
+     * BLOQUE DE FIEBRE
+     * -------------------------- */
+    if (isset($form[$fever_temp])) {
+      $form[$fever_temp]['#states'] = [
+        'visible' => [
           ':input[name="' . $episode_type . '"]' => [
             ['value' => 'infection'],
             ['value' => 'fever'],
           ],
         ],
-    ];
-  }
-  //hide group_fever
-  $form['group_fever']['#states'] = [
-    'visible' => [
-        ':input[name="' . $episode_type . '"]' => [
-          ['value' => 'infection'],
-          ['value' => 'fever'],
-        ],
-      ],
-  ];
+      ];
+    }
 
-  // Follow-up → show follow-up fields.
-  foreach ($followup_fields as $field) {
-    if (isset($form[$field])) {
-      $form[$field]['#states'] = [
+    //if (isset($form['group_fever'])) {
+      $form['group_fever']['#states'] = [
         'visible' => [
           ':input[name="' . $episode_type . '"]' => [
-            ['value' => 'follow_up'],
+            ['value' => 'infection'],
+            ['value' => 'fever'],
+          ],
+        ],
+      ];
+    //}
+
+    /* --------------------------
+     * BLOQUE DE SEGUIMIENTO
+     * -------------------------- */
+    foreach ($followup_fields as $field) {
+      if (isset($form[$field])) {
+        $form[$field]['#states'] = [
+          'visible' => [
+            ':input[name="' . $episode_type . '"]' => ['value' => 'follow_up'],
+          ],
+        ];
+      }
+    }
+
+    /* --------------------------
+     * BLOQUE DE HERIDAS
+     * -------------------------- */
+    foreach ($wound_fields as $field) {
+      if (isset($form[$field])) {
+        $form[$field]['#states'] = [
+          'visible' => [
+            ':input[name="' . $episode_type . '"]' => ['value' => 'wound'],
+          ],
+        ];
+      }
+    }
+
+    if (isset($form['field_wound_location_other'])) {
+      $form['field_wound_location_other']['#states'] = [
+        'visible' => [
+          [
+            ':input[name="' . $episode_type . '"]' => ['value' => 'wound'],
+            ':input[name="field_wound_location"]' => ['value' => 'other'],
           ],
         ],
       ];
     }
-  }
 
-  // Wound → show wound fields.
-  foreach ($wound_fields as $field) {
-    if (isset($form[$field])) {
-      $form[$field]['#states'] = [
+    //if (isset($form['group_wound_care'])) {
+      $form['group_wound_care']['#states'] = [
         'visible' => [
-          ':input[name="' . $episode_type . '"]' => [
-            ['value' => 'wound'],
-          ],
-        ],
-      ];
-    }
-  }
-  // Wound + other lowound location  → show fever temperature.
-  if (isset($form['field_wound_location_other'])) {
-    $form['field_wound_location_other']['#states'] = [
-      'visible' => [
-        [
           ':input[name="' . $episode_type . '"]' => ['value' => 'wound'],
-          ':input[name="field_wound_location"]' => ['value' => 'other'],
         ],
-    ],
-    ];
-  }
-  // Other → show "Other episode type" text field.
-  if (isset($form[$other_type_field])) {
-    $form[$other_type_field]['#states'] = [
-      'visible' => [
-        ':input[name="' . $episode_type . '"]' => ['value' => 'other'],
-      ],
-    ];
-  }
+      ];
+    //}
 
-  // hide group_wound
-  $form['group_wound_care']['#states'] = [
-    'visible' => [
-        ':input[name="' . $episode_type . '"]' => ['value' => 'wound'],
-      ],
-  ];
+    /* --------------------------
+     * BLOQUE “OTHER”
+     * -------------------------- */
+    if (isset($form[$other_type_field])) {
+      $form[$other_type_field]['#states'] = [
+        'visible' => [
+          ':input[name="' . $episode_type . '"]' => ['value' => 'other'],
+        ],
+      ];
+    }
 
-  // Ocultar el campo completo de "Episode end" si "Single event" está activado.
-  if (isset($form['field_end_datetime'])) {
-    $form['field_end_datetime']['#states'] = [
-      'visible' => [
-        ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
-      ],
-    ];
+    /* --------------------------
+     * BLOQUE “EPISODE END”
+     * -------------------------- */
+    if (isset($form['field_end_datetime'])) {
+      $form['field_end_datetime']['widget'][0]['#required'] = FALSE;
+      $form['field_end_datetime']['#states'] = [
+        'invisible' => [
+          [':input[name="field_single_event[value]"]' => ['checked' => TRUE]],
+          [
+            ':input[name="field_episode_status"]' => ['!value' => 'resolved'],
+            ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
+          ],
+        ],
+        'required' => [
+          ':input[name="field_episode_status"]' => ['value' => 'resolved'],
+          ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
+        ],
+      ];
+    }
+
+    /* --------------------------
+     * BLOQUE “SINGLE EVENT”
+     * -------------------------- */
+    if (isset($form['field_episode_status'])) {
+      $form['field_episode_status']['#states'] = [
+        'visible' => [
+          ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
+        ],
+      ];
+    }
+
+    /* --------------------------
+     * BLOQUE RELACIÓN ENTRE EPISODIOS
+     * -------------------------- */
+    if (isset($form['field_related_health_episode']) && isset($form['field_relationship_type'])) {
+      $form['field_relationship_type']['#states'] = [
+        'visible' => [
+          ':input[name="field_related_health_episode[target_id]"]' => ['filled' => TRUE],
+        ],
+      ];
+    }
   }
-
 }
-
-
-// function health_episode_form_node_health_episode_form_validate(&$form, FormStateInterface $form_state) {
-//   $episode_type = $form_state->getValue('field_episode_type')[0]['value'] ?? '';
-//   $wound_location = $form_state->getValue('field_wound_location')[0]['value'] ?? '';
-//   $other_text = trim($form_state->getValue('field_wound_location_other')[0]['value'] ?? '');
-
-//   if ($episode_type === 'wound' && $wound_location === 'other' && $other_text === '') {
-//     $form_state->setErrorByName('field_wound_location_other', t('Please specify the wound location when selecting “Other”.'));
-//   }
-// }
