@@ -3,6 +3,7 @@
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\node\NodeInterface;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * Implements hook_form_FORM_ID_alter().
@@ -183,6 +184,8 @@ function urination_after_build_expand_symptoms($form, FormStateInterface $form_s
 
 function urination_node_presave(NodeInterface $node) {
   if ($node->bundle() == 'urination') {
+
+    // --- Procesar campo datetime ---
     if ($node->hasField('field_datetime') && !$node->get('field_datetime')->isEmpty()) {
       try {
         // Obtener el valor de fecha
@@ -213,6 +216,14 @@ function urination_node_presave(NodeInterface $node) {
 
       } catch (\Exception $e) {
         \Drupal::logger('urination')->error('Error processing date: @message', ['@message' => $e->getMessage()]);
+      }
+    }
+
+    // --- Procesar amount y flag approx/missing ---
+    if ($node->hasField('field_amount') && $node->hasField('field_approx_miss_amount')) {
+      $amount = $node->get('field_amount')->value ?? NULL;
+      if (empty($amount)) {
+        $node->set('field_approx_miss_amount', 1);
       }
     }
   }
