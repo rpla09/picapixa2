@@ -219,11 +219,29 @@ function urination_node_presave(NodeInterface $node) {
       }
     }
 
-    // --- Procesar amount y flag approx/missing ---
-    if ($node->hasField('field_amount') && $node->hasField('field_approx_miss_amount')) {
+    // --- Procesar amount / approx ---
+    // if ($node->hasField('field_amount') && $node->hasField('field_approx_amount')) {
+    //   $amount = $node->get('field_amount')->value ?? NULL;
+    //   $approx = (bool) ($node->get('field_approx_amount')->value ?? 0);
+    //   if (empty($amount)) {
+    //     $node->set('field_approx_amount', 1);
+    //   }
+    // }
+
+
+    // --- Procesar amount / missing ---
+    if ($node->hasField('field_amount') && $node->hasField('field_miss_amount')) {
       $amount = $node->get('field_amount')->value ?? NULL;
+      $miss_amount = (bool) ($node->get('field_miss_amount')->value ?? 0);
+
+      // Si el volumen está vacío, activar automáticamente "missing".
       if (empty($amount)) {
-        $node->set('field_approx_miss_amount', 1);
+        $node->set('field_miss_amount', 1);
+        $node->set('field_approx_amount', 0);
+      }
+      // Si hay volumen y el usuario dejó "missing" activo, limpiarlo.
+      elseif ($miss_amount) {
+        $node->set('field_miss_amount', 0);
       }
     }
   }
