@@ -1,6 +1,8 @@
 <?php
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\Entity\Node;
+
 
 /**
  * Implements hook_form_alter().
@@ -179,11 +181,17 @@ function health_episode_form_alter(&$form, FormStateInterface $form_state, $form
      * BLOQUE “SINGLE EVENT”
      * -------------------------- */
     if (isset($form['field_episode_status'])) {
+      // Hacer invisible el campo cuando Single event está marcado.
       $form['field_episode_status']['#states'] = [
         'visible' => [
           ':input[name="field_single_event[value]"]' => ['checked' => FALSE],
         ],
       ];
+    }
+
+    // Ocultar la opción "completed" cuando Single event está desmarcado.
+    if (isset($form['field_episode_status']['widget']['#options']['completed'])) {
+      unset($form['field_episode_status']['widget']['#options']['completed']);
     }
 
     /* --------------------------
@@ -197,6 +205,106 @@ function health_episode_form_alter(&$form, FormStateInterface $form_state, $form
       ];
     }
   }
+}
+
+/**
+ * Implements hook_node_presave().
+ *
+ * Limpia automáticamente los campos no aplicables según las condiciones del formulario (#states).
+ */
+function health_episode_node_presave(Node $node) {
+  // Aplicar solo al tipo de contenido "health_episode".
+  if ($node->bundle() !== 'health_episode') {
+    return;
+  }
+
+  // ===============================
+  // 1️⃣ VARIABLES DE CONTROL
+  // ===============================
+  $status = $node->get('field_episode_status')->value ?? NULL;
+  $single_event = (bool) ((int) ($node->get('field_single_event')->value ?? 0));
+  $episode_type = $node->get('field_episode_type')->value ?? NULL;
+  $wound_location = $node->get('field_wound_location')->value ?? NULL;
+  $related_episode = $node->get('field_related_health_episode')->target_id ?? NULL;
+
+  // ===============================
+  // 2️⃣ EPISODE END
+  // Oculto si single_event = TRUE o status != resolved
+  // ===============================
+  if ($single_event || $status !== 'resolved') {
+    $node->set('field_end_datetime', NULL);
+  }
+
+  // ===============================
+  // 3️⃣ INFECTION
+  // Visible solo si type = infection
+  // ===============================
+  if ($episode_type !== 'infection') {
+    $node->set('field_infection_status', NULL);
+  }
+
+  // ===============================
+  // 4️⃣ ANTIBIOTICS & MEDICATION
+  // Visibles solo si type = infection o medication
+  // ===============================
+  if (!in_array($episode_type, ['infection', 'medication'], TRUE)) {
+    foreach (['field_antibiotic_name', 'field_antibiotic_dose', 'field_antibiotic_frequency'] as $field) {
+      $node->set($field, NULL);
+    }
+  }
+
+  // ===============================
+  // 5️⃣ FEVER
+  // Visible solo si type = infection o fever
+  // ===============================
+  if (!in_array($episode_type, ['infection', 'fever'], TRUE)) {
+    $node->set('field_fever_max_temp', NULL);
+  }
+
+  // ===============================
+  // 6️⃣ FOLLOW-UP
+  // Visible solo si type = follow_up
+  // ===============================
+  if ($episode_type !== 'follow_up') {
+    $node->set('field_follow_up_phase', NULL);
+  }
+
+  // ===============================
+  // 7️⃣ WOUND
+  // Visible solo si type = wound
+  // ===============================
+  if ($episode_type !== 'wound') {
+    foreach (['field_wound_location', 'field_wound_location_other', 'field_wound_stage', 'field_wound_size'] as $field) {
+      $node->set($field, NULL);
+    }
+  }
+  else {
+    // Si es wound pero no "other" → limpiar campo “other”.
+    if ($wound_location !== 'other') {
+      $node->set('field_wound_location_other', NULL);
+    }
+  }
+
+  // ===============================
+  // 8️⃣ OTHER TYPE
+  // Visible solo si type = other
+  // ===============================
+  if ($episode_type !== 'other') {
+    $node->set('field_episode_type_other', NULL);
+  }
+
+  // ===============================
+  // 9️⃣ RELACIÓN ENTRE EPISODIOS
+  // Relationship type visible solo si hay related episode
+  // ===============================
+  if (empty($related_episode)) {
+    $node->set('field_relationship_type', NULL);
+  }
+  // Si es single event, establecer automáticamente el status.
+  if ($single_event) {
+    $node->set('field_episode_status', 'completed');
+  }
+
 }
 
 function health_episode_custom_validate($form, FormStateInterface $form_state) {
@@ -227,7 +335,24 @@ function health_episode_custom_validate($form, FormStateInterface $form_state) {
   if ($status === 'resolved' && !$single_event && empty($end_date)) {
     $form_state->setErrorByName(
       'field_end_datetime',
-      t('Please enter an end date when the episode is resolved and not a single event.')
+      t('Episode end field is required. Please enter an end date when the episode is resolved and not a single event.')
     );
   }
+
+  // 2️⃣ Validación: coherencia temporal (end ≥ start).
+  // if (!empty($start_date) && !empty($end_date)) {
+  //   try {
+  //     $start = new \DateTime($start_date);
+  //     $end = new \DateTime($end_date);
+  //     if ($end < $start) {
+  //       $form_state->setErrorByName(
+  //         'field_end_datetime',
+  //         t('The end date cannot be earlier than the start date.')
+  //       );
+  //     }
+  //   }
+  //   catch (\Exception $e) {
+  //     // Si alguna fecha es inválida, dejamos que Drupal maneje el error base.
+  //   }
+  // }
 }
